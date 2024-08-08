@@ -25,3 +25,16 @@ persp(x1, x2, f,
       phi =30,  #ángulo de visualización
       col="gray",
       ticktype= "detailed")
+
+
+# ---Grafico de contornos --
+
+contour(x1,
+        x2,
+        f,
+        draw=T,
+        nlevels=20,
+        labcex=0.8,
+        xlab=expression(x[1]),
+        ylab=expression(x[2])
+             )
