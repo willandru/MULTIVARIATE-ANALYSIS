@@ -1,5 +1,5 @@
 ---
-title: "Tarea 1"
+title: "Análisis Multivariado"
 author: "willandru"
 date: "2024-08-14"
 output: html_document
@@ -9,22 +9,81 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Tarea 1
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+**1. ** El archivo 'anexo1.csv' contiene los datos de una muestra de vectores aleatorios de 3 componentes. $$X_1, X_2, \ldots, X_n$$
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+X <- read.csv2("anexo1.csv")
+head(X)
 ```
 
-## Including Plots
+**a. **  Evalue la normalidad multivariada de la muestra dada.    
+**b. **  Si el vector de medias poblacionales es \( \mu = \begin{bmatrix} 0.1 & -0.2 & 0.05 \end{bmatrix}^T \) y \( S \) es la matriz de varianzas-covarianzas muestrales. ¿Cuál es la distribución aproximada de 
 
-You can also embed plots, for example:
+\[
+40 \left( \bar{X} - \begin{bmatrix} 0.1 & -0.2 & 0.05 \end{bmatrix}^T \right) S^{-1} \left( \bar{X} - \begin{bmatrix} 0.1 & -0.2 & 0.05 \end{bmatrix}^T \right) ?
+\]
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+**c. ** Usando la **distancia cuadrada generalizada** establezca si existen valores
+atípicos.
+
+```{r}
+#Cargar la Librería para el Test de Mardia
+library(MVN)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+mardia_test <- mvn(X, mvnTest = "mardia")
+mardia_test
+```
+
+```{r}
+
+```
+
+**2. ** Los datos Protein del paquete MultBiplotR contiene información
+sobre datos nutricionales de 9 diferentes fuentes de proteínas para los habitantes
+de 25 países europeos alrededor de 1970:
+
+### Consumo de Proteínas por Fuente
+
+- **RedMeat**: Consumo de proteínas provenientes de carnes rojas.
+- **WhiteMeat**: Consumo de proteínas provenientes de carnes blancas.
+- **Eggs**: Consumo de proteínas del huevo.
+- **Milk**: Consumo de proteínas de la leche.
+- **Fish**: Consumo de proteínas provenientes del pescado.
+- **Cereals**: Consumo de proteínas procedentes de cereales.
+- **Starch**: Consumo de proteínas provenientes de carbohidratos.
+- **Nuts**: Consumo de proteínas procedentes de cereales, frutos secos y semillas oleaginosas.
+- **FruitVeg**: Consumo de proteínas procedentes de frutas y verduras.
+
+Estos datos fueron colectados inicialmente para entender las diferencias nutricionales entre los países europeos.
+
+a. Determine y analice el vector de medias y la matriz de covarianzas muestrales para las diferentes regiones.
+
+b. Calcule la media de las variables por regiones. ¿Qué puede decir al respecto?
+
+c. Intente construir grupos de países usando representaciones pictóricas (gráficos de estrellas o caras de Chernoff).
+
+d. Utilice las herramientas de gráficas más adecuadas para verificar normalidad multivariada.
+
+e. Realice la prueba de Mardia para verificar las hipótesis:
+   - \( H_0 \): Los datos provienen de una población Normal Multivariada.
+   - \( H_1 \): Los datos NO provienen de una población Normal Multivariada.
+
+f. Verifique si hay outliers (multivariados) e identifíquelos.
+
+g. Pruebe las hipótesis:
+   - \( H_0: \mu = \mu_0 \)
+   - \( H_1: \mu \neq \mu_0 \)
+   
+   donde \( \mu_0 = \begin{bmatrix} 9 & 7 & 2 & 15 & 5 & 30 & 4 & 3 & 4 \end{bmatrix}^T \).
+
+
+   i. De forma univariada.
+
+   ii. De forma multivariada.
+
+Comente los resultados.
