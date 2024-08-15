@@ -1,9 +1,10 @@
 ---
 title: "Análisis Multivariado"
-author: "willandru"
+author: "William Andrés Gomez Roa - @willandru"
 date: "2024-08-14"
 output: html_document
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -11,12 +12,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Tarea 1
 
+<hr style="border: 2px solid black; width: 100%; margin: auto;"/> 
+
+
+
 **1. ** El archivo 'anexo1.csv' contiene los datos de una muestra de vectores aleatorios de 3 componentes. $$X_1, X_2, \ldots, X_n$$
 
-```{r}
-X <- read.csv2("anexo1.csv")
-head(X)
-```
+
 
 **a. **  Evalue la normalidad multivariada de la muestra dada.    
 **b. **  Si el vector de medias poblacionales es \( \mu = \begin{bmatrix} 0.1 & -0.2 & 0.05 \end{bmatrix}^T \) y \( S \) es la matriz de varianzas-covarianzas muestrales. ¿Cuál es la distribución aproximada de 
@@ -29,6 +31,18 @@ head(X)
 **c. ** Usando la **distancia cuadrada generalizada** establezca si existen valores
 atípicos.
 
+___ 
+
+#### Solución 1
+
+
+```{r}
+X <- read.csv2("anexo1.csv")
+head(X)
+```
+
+a.
+
 ```{r}
 #Cargar la Librería para el Test de Mardia
 library(MVN)
@@ -39,9 +53,62 @@ mardia_test <- mvn(X, mvnTest = "mardia")
 mardia_test
 ```
 
+
+b.
+
+```{r}
+Xbarra<-colMeans(X)
+S<-cov(X)
+S_inv<-solve(S)
+mu <- c(0.1, -0.2, 0.05)
+```
+
 ```{r}
 
+result <- 40 * t(Xbarra - mu) %*% S_inv %*% (Xbarra - mu)
+result
 ```
+
+```{r}
+alpha <- 0.05
+df <- 2  # grados de libertad
+chi_square_critical <- qchisq(1 - alpha, df)
+chi_square_critical
+```
+
+c.
+```{r}
+# Calcular la distancia cuadrada generalizada para cada observación
+distances <- apply(X, 1, function(x) {
+  (x - Xbarra) %*% S_inv %*% (x - Xbarra)
+})
+
+distances
+
+```
+
+
+```{r}
+alpha <- 0.05  # Nivel de significancia
+df <- ncol(X) - 1  # Grados de libertad (número de p - 1)
+quantile_chi2 <- qchisq(1 - alpha, df)
+```
+
+```{r}
+# Paso 3: Comparar distancias con el cuantíl
+outliers <- distances[distances > quantile_chi2]  # Valores atípicos
+outlier_indices <- which(distances > quantile_chi2)  # Índices de los valores atípicos
+outlier_indices
+```
+
+```{r}
+Out<-mvn(X, mvnTest = "mardia",
+multivariateOutlierMethod ="quan")
+```
+
+
+  
+<hr style="border: 2px solid black; width: 100%; margin: auto;"/> 
 
 **2. ** Los datos Protein del paquete MultBiplotR contiene información
 sobre datos nutricionales de 9 diferentes fuentes de proteínas para los habitantes
@@ -87,3 +154,224 @@ g. Pruebe las hipótesis:
    ii. De forma multivariada.
 
 Comente los resultados.
+
+___
+
+```{r}
+library(MultBiplotR)
+```
+
+```{r}
+data("Protein")
+
+head(Protein)
+```
+a. 
+
+```{r}
+mean_by_region <- aggregate(. ~ Region, data = Protein, FUN = mean)
+mean_vector <- mean_by_region[, -c(1, 2)]  
+mean_vector
+
+covariance_matrices <- lapply(split(Protein[, -c(1, 2)], Protein$Region), cov)
+covariance_matrices
+```
+
+Análisis
+Vector de Medias: El vector de medias muestra el consumo promedio de proteínas por fuente para cada región. Observa cómo varían las medias entre las diferentes regiones y qué fuentes de proteínas son más o menos consumidas.
+
+Matriz de Covarianzas: Las matrices de covarianzas permiten ver la variabilidad y las relaciones entre las diferentes fuentes de proteínas dentro de cada región. Una covarianza alta entre dos fuentes indica que su consumo tiende a aumentar o disminuir juntos.
+
+b. 
+
+```{r}
+ # Calcular la media de las variables por región
+media_por_region <- aggregate(. ~ Region, data = Protein, FUN = mean)
+
+# Mostrar las medias por región
+media_por_region
+```
+Resultados de la Media: Observa los valores promedios de cada fuente de proteínas (Red Meat, White Meat, Eggs, etc.) para cada región. Esto te dará una idea de cómo varía el consumo de proteínas entre las regiones.
+
+Comparación entre Regiones:
+
+Si una región muestra un consumo promedio alto en alguna fuente (por ejemplo, Red Meat), puede indicar que esa fuente de proteínas es una parte importante de la dieta en esa región.
+Si hay diferencias notables en las medias entre las regiones, esto podría reflejar tradiciones culturales, disponibilidad de recursos o preferencias dietéticas en cada región.
+Tendencias Generales: Puedes observar si ciertas fuentes de proteínas son más populares en general y cómo estas preferencias pueden relacionarse con factores socioeconómicos o geográficos.
+
+
+c. 
+
+```{r}
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+```
+
+```{r}
+# Agregar una columna de país
+Protein$Country <- rownames(Protein)
+
+# Transformar los datos a formato largo
+long_data <- melt(Protein, id.vars = "Country", 
+                  measure.vars = c("Red_Meat", "White_Meat", "Eggs", "Milk", "Fish", "Cereal", "Starch", "Nuts", "Fruits_Vegetables"))
+
+# Crear el gráfico de estrellas
+ggplot(long_data, aes(x = variable, y = value, group = Country)) +
+  geom_polygon(aes(fill = Country), alpha = 0.5) +
+  geom_line() +
+  coord_polar() +
+  labs(title = "Gráfico de Estrellas de Consumo de Proteínas por País",
+       x = "Fuentes de Proteínas",
+       y = "Consumo") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
+ # Crear una lista para almacenar los gráficos
+plots <- list()
+
+# Crear un gráfico de estrellas para cada país y almacenarlo en la lista
+unique_countries <- unique(long_data$Country)
+
+for (country in unique_countries) {
+  # Filtrar los datos para el país actual
+  country_data <- long_data[long_data$Country == country, ]
+  
+  # Crear el gráfico de estrellas con tamaño reducido
+  p <- ggplot(country_data, aes(x = variable, y = value, group = Country)) +
+    geom_polygon(aes(fill = Country), alpha = 0.5) +
+    geom_line(size = 0.5) +  # Reduce el tamaño de la línea
+    coord_polar() +
+    labs(title = paste("Consumo de Proteínas -", country),
+         x = "Fuentes de Proteínas",
+         y = "Consumo") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+          plot.title = element_text(hjust = 0.5)) # Centra el título
+  
+  # Agregar el gráfico a la lista
+  plots[[country]] <- p
+}
+
+# Dividir los gráficos en grupos de 6
+n_per_plot <- 4
+n_plots <- ceiling(length(plots) / n_per_plot)
+
+# Crear imágenes para cada grupo de 6 países
+for (i in 1:n_plots) {
+  start_index <- (i - 1) * n_per_plot + 1
+  end_index <- min(i * n_per_plot, length(plots))
+  
+  # Crear una matriz de gráficos
+  grid.arrange(grobs = plots[start_index:end_index], ncol = 2)
+}
+```
+
+
+d. 
+```{r}
+X2 <- Protein[, c("Red_Meat", "White_Meat", "Eggs", "Milk", "Fish", "Cereal", "Starch", "Nuts", "Fruits_Vegetables")]
+X2[] <- lapply(X2, as.numeric)
+head(X2)
+```
+```{r}
+library(car)
+# Gráfico QQ para cada variable
+par(mfrow = c(3, 3))  # Establecer una matriz de gráficos 3x3
+for (col in names(X2)) {
+  qqPlot(X2[[col]], main = paste("QQ Plot de", col))
+}
+
+
+```
+```{r}
+
+```
+
+e. 
+
+```{r}
+ library(MVN)
+mardia_result <- mvn(X2, mvnTest = "mardia")
+mardia_result
+```
+```{r}
+ 
+```
+```{r}
+ 
+```
+
+f. 
+
+```{r}
+ outliers_result <- mvn(X2, mvnTest = "mardia", multivariateOutlierMethod = "adj")
+outliers_result
+
+```
+
+
+g. 
+
+
+```{r}
+ mu0 <- c(9, 7, 2, 15, 5, 30, 4, 3, 4)
+```
+```{r}
+Xbarra <- colMeans(X2)
+S <- apply(X2, 2, sd)
+
+# Número de observaciones y número de variables
+n <- nrow(X2)
+n
+p <- ncol(X2)
+p
+```
+- Univariada:
+```{r}
+ p_values <- sapply(1:p, function(i) {
+  t_test <- (Xbarra[i] - mu0[i]) / (S[i] / sqrt(n))
+  p_value <- 2 * (1 - pt(abs(t_test), df = n - 1))
+  return(p_value)
+})
+p_values
+```
+
+```{r}
+ 
+```
+- Multivariada:
+
+```{r}
+ # --- PH multivariadas --- #
+T2<-function(mu0,alpha,n,p){
+Xbarra<-colMeans(X2)
+S<-cov(X2)
+InvS<-solve(S)
+DifMed<-Xbarra - mu0
+T2<-n%*%t(DifMed)%*%InvS%*%DifMed
+return(T2)
+}
+```
+
+```{r}
+ T2_value <- T2(mu0, alpha = 0.05, n = n, p = p)
+T2_value
+# Comparar con la distribución F
+F_value <- (T2_value * (n - p)) / (p * (n - 1))
+F_value
+p_value_multivariado <- 1 - pf(F_value, df1 = p, df2 = n - p)
+p_value_multivariado
+```
+```{r}
+ 
+```
+```{r}
+ 
+```
+```{r}
+ 
+```
