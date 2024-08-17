@@ -1,8 +1,10 @@
 ---
 title: "Análisis Multivariado"
-author: "William Andrés Gomez Roa - @willandru"
-date: "2024-08-14"
-output: html_document
+author: "William Gomez"
+date: "2024-08-15"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 
@@ -37,11 +39,15 @@ ___
 
 
 ```{r}
-X <- read.csv2("anexo1.csv")
-head(X)
+X1 <- read.csv2("anexo1.csv")
+n <- nrow(X1)
+n
+p <- ncol(X1)
+p
+head(X1)
 ```
 
-a.
+a. Para evaluar la normalidad multivariada de la muestra, usaremos el test de Mardia.
 
 ```{r}
 #Cargar la Librería para el Test de Mardia
@@ -49,37 +55,45 @@ library(MVN)
 ```
 
 ```{r}
-mardia_test <- mvn(X, mvnTest = "mardia")
+mardia_test <- mvn(X1, mvnTest = "mardia")
 mardia_test
 ```
 
+Podemos observar que el test de normalidad multivariada nos arroja resultados afirmativos tanto en el 'Mardia Skewness' como en el 'Mardia Kurtosis', lo que sugiere que existe normalidad multivariada en la muestra. Es decir, las variables consideradas en la muestra se distribuyen de manera normal multivariada por el test de Mardia.
 
 b.
 
+La estadística de prueba $$
+n (X - \mu)^\top S^{-1} (X - \mu) \approx \chi^2_p
+$$ con \( \mu = \begin{bmatrix} 0.1 & -0.2 & 0.05 \end{bmatrix}^T \), \( S \) y \( n=40 \), tiene una distribución $$\chi^2_p$$
+Esto significa que la estadística de prueba sigue una distribución chi-cuadrada con p grados de libertad.
+
 ```{r}
-Xbarra<-colMeans(X)
-S<-cov(X)
+Xbarra<-colMeans(X1)
+S<-cov(X1)
 S_inv<-solve(S)
 mu <- c(0.1, -0.2, 0.05)
-```
-
-```{r}
-
 result <- 40 * t(Xbarra - mu) %*% S_inv %*% (Xbarra - mu)
 result
 ```
 
 ```{r}
 alpha <- 0.05
-df <- 2  # grados de libertad
+df <- 3  # grados de libertad
 chi_square_critical <- qchisq(1 - alpha, df)
 chi_square_critical
+```
+
+La estadística de prueba calculada (73.3465) es mucho mayor que el valor crítico (7.814728) para alfa=0.05 y 3 grados de libertad. Por tanto, se rechaza la hipótesis nula y se indica que hay una diferencia significativa entre la media muestral y el vector de medias poblacionales especificado.
+
+```{r}
+
 ```
 
 c.
 ```{r}
 # Calcular la distancia cuadrada generalizada para cada observación
-distances <- apply(X, 1, function(x) {
+distances <- apply(X1, 1, function(x) {
   (x - Xbarra) %*% S_inv %*% (x - Xbarra)
 })
 
@@ -87,11 +101,12 @@ distances
 
 ```
 
-
+Una vez calculadas las distancias cuadradas generalizadas, calculamos el valor crítico de una distribución chi-cuadrada con p grados de libertad, con el fin de comparar estos valores y decidir sobre los outliers.
 ```{r}
 alpha <- 0.05  # Nivel de significancia
-df <- ncol(X) - 1  # Grados de libertad (número de p - 1)
+df <- ncol(X1) - 1  # Grados de libertad (número de p - 1)
 quantile_chi2 <- qchisq(1 - alpha, df)
+quantile_chi2
 ```
 
 ```{r}
@@ -101,11 +116,14 @@ outlier_indices <- which(distances > quantile_chi2)  # Índices de los valores a
 outlier_indices
 ```
 
+Podemos también utilizar un método gráfico.
+
 ```{r}
-Out<-mvn(X, mvnTest = "mardia",
-multivariateOutlierMethod ="quan")
+Out<-mvn(X1, mvnTest = "mardia",
+multivariateOutlierMethod ="adj")
 ```
 
+En conclusión, al observar las distancias cuadradas generalizadas, calcular un nivel de significancia y compararlo con el valor crítico de la distribución chi-cuadrada, así como al utilizar el método gráfico para corroborar, los valores atípicos son los índices: [13, 21, 29, 35].
 
   
 <hr style="border: 2px solid black; width: 100%; margin: auto;"/> 
@@ -164,40 +182,121 @@ library(MultBiplotR)
 ```{r}
 data("Protein")
 
-head(Protein)
+region_Sur <- subset(Protein, Region == "South")
+region_centro <- subset(Protein, Region == "Center")
+region_norte <- subset(Protein, Region == "North")
 ```
 a. 
-
+ En el dataset existen 3 regiones.
+ 
+#### Region Sur:
 ```{r}
-mean_by_region <- aggregate(. ~ Region, data = Protein, FUN = mean)
-mean_vector <- mean_by_region[, -c(1, 2)]  
-mean_vector
-
-covariance_matrices <- lapply(split(Protein[, -c(1, 2)], Protein$Region), cov)
-covariance_matrices
+summary(region_Sur)
 ```
 
-Análisis
-Vector de Medias: El vector de medias muestra el consumo promedio de proteínas por fuente para cada región. Observa cómo varían las medias entre las diferentes regiones y qué fuentes de proteínas son más o menos consumidas.
+```{r, echo=FALSE}
+# Cargar librería necesaria
+library(ggplot2)
+library(reshape2)
 
-Matriz de Covarianzas: Las matrices de covarianzas permiten ver la variabilidad y las relaciones entre las diferentes fuentes de proteínas dentro de cada región. Una covarianza alta entre dos fuentes indica que su consumo tiende a aumentar o disminuir juntos.
+# Convertir el dataset a formato largo
+long_data <- melt(region_Sur, id.vars = "Region", 
+                  measure.vars = c("Red_Meat", "White_Meat", "Eggs", "Milk", 
+                                   "Fish", "Cereal", "Starch", "Nuts", 
+                                   "Fruits_Vegetables"))
+
+# Crear el gráfico de cajas
+ggplot(long_data, aes(x = variable, y = value)) +
+  geom_boxplot(fill = "skyblue", outlier.colour = "red") +
+  labs(title = "Boxplot de Consumo de Alimentos en la Región Sur", 
+       x = "Tipos de Alimentos", 
+       y = "Consumo") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+La región Sur se caracteriza por un elevado consumo de cereal por encima que cualquier otra cosa. El consumo de leche tiende a ser también algo común en esta región.
+
+
+#### Region Centro:
+```{r}
+summary(region_centro)
+```
+```{r, echo=FALSE}
+# Cargar librería necesaria
+library(ggplot2)
+library(reshape2)
+
+# Convertir el dataset a formato largo
+long_data <- melt(region_centro, id.vars = "Region", 
+                  measure.vars = c("Red_Meat", "White_Meat", "Eggs", "Milk", 
+                                   "Fish", "Cereal", "Starch", "Nuts", 
+                                   "Fruits_Vegetables"))
+
+# Crear el gráfico de cajas
+ggplot(long_data, aes(x = variable, y = value)) +
+  geom_boxplot(fill = "skyblue", outlier.colour = "red") +
+  labs(title = "Boxplot de Consumo de Alimentos en la Región Centro", 
+       x = "Tipos de Alimentos", 
+       y = "Consumo") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+La región Centro se caracteriza también por un consumo elevado de Cereal, pero en menor cantidad. Sin embargo, su población muestra una preferencia mayor a la leche que ne la región Sur. Las carnes rojas y blancas son igualmente una parte importante en la dieta de esta región.
+
+
+#### Region Norte:
+
+```{r}
+summary(region_norte)
+```
+```{r, echo=FALSE}
+# Cargar librería necesaria
+library(ggplot2)
+library(reshape2)
+
+# Convertir el dataset a formato largo
+long_data <- melt(region_norte, id.vars = "Region", 
+                  measure.vars = c("Red_Meat", "White_Meat", "Eggs", "Milk", 
+                                   "Fish", "Cereal", "Starch", "Nuts", 
+                                   "Fruits_Vegetables"))
+
+# Crear el gráfico de cajas
+ggplot(long_data, aes(x = variable, y = value)) +
+  geom_boxplot(fill = "skyblue", outlier.colour = "red") +
+  labs(title = "Boxplot de Consumo de Alimentos en la Región Norte", 
+       x = "Tipos de Alimentos", 
+       y = "Consumo") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+La región Norte se caracteriza por el consumo elevado de leche seguido a su vez por un gran consumo de cereal. Entre los alimentos con importancia en su población estan las carnes rojas, blancas y el pescado. 
+
+```{r}
+matriz_covarianza_por_region <- lapply(split(Protein[, -c(1, 2)], Protein$Region), cov)
+matriz_covarianza_por_region
+```
+
+Por otro lado, la matriz de covarianzas muestra alta varianza en 'Milk' (22.4825), lo que indica un consumo muy variable. Existe una covarianza positiva entre 'Red_Meat' y 'White_Meat' (1.5533), sugiriendo que a medida que aumenta el consumo de carne roja, también lo hace el de carne blanca. Sin embargo, la covarianza negativa entre 'Milk' y 'Fish' (-7.7958) indica que los hogares que consumen más leche tienden a consumir menos pescado.
+
+En la region Centro se observa una alta varianza en 'Milk' (23.8327) y una covarianza negativa entre 'Red_Meat' y 'White_Meat' (-4.5665), sugiriendo que un aumento en el consumo de carne roja está asociado con una disminución en el de carne blanca. Además, la covarianza negativa en Cereal con otras variables sugiere relaciones inversas en el consumo, lo que podría reflejar preferencias alimentarias distintivas.
+
+En la región Sur la varianza en 'Fish' (22.7955) es notablemente alta, lo que indica un consumo muy variable. La covarianza negativa entre 'Cereal' y 'Fish' (-43.1157) sugiere que los hogares que consumen más pescado tienden a consumir menos cereal, mientras que la covarianza positiva entre 'Milk' y 'Eggs' (2.1518) sugiere que ambos productos son consumidos conjuntamente en esta región.
 
 b. 
 
 ```{r}
- # Calcular la media de las variables por región
 media_por_region <- aggregate(. ~ Region, data = Protein, FUN = mean)
-
-# Mostrar las medias por región
+media_por_region <- media_por_region[, -c(1, 2)]  
 media_por_region
 ```
-Resultados de la Media: Observa los valores promedios de cada fuente de proteínas (Red Meat, White Meat, Eggs, etc.) para cada región. Esto te dará una idea de cómo varía el consumo de proteínas entre las regiones.
 
-Comparación entre Regiones:
 
-Si una región muestra un consumo promedio alto en alguna fuente (por ejemplo, Red Meat), puede indicar que esa fuente de proteínas es una parte importante de la dieta en esa región.
-Si hay diferencias notables en las medias entre las regiones, esto podría reflejar tradiciones culturales, disponibilidad de recursos o preferencias dietéticas en cada región.
-Tendencias Generales: Puedes observar si ciertas fuentes de proteínas son más populares en general y cómo estas preferencias pueden relacionarse con factores socioeconómicos o geográficos.
+La región que mayor consumo de cereal presenta es la región Sur. Esta región  a su vez es la que mayor consumo de frutas y verduras presenta y menor consumo de Nuts. En la región Norte se da el mayor consumo de Leche y Pesacado. Mientras que en la region Centro se da el mayor consumo de carnes rojas y blancas.
 
 
 c. 
@@ -208,7 +307,7 @@ library(reshape2)
 library(gridExtra)
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Agregar una columna de país
 Protein$Country <- rownames(Protein)
 
@@ -229,7 +328,7 @@ ggplot(long_data, aes(x = variable, y = value, group = Country)) +
 ```
 
 
-```{r}
+```{r, echo=FALSE}
  # Crear una lista para almacenar los gráficos
 plots <- list()
 
@@ -270,14 +369,15 @@ for (i in 1:n_plots) {
 }
 ```
 
+A simple vista puedo sugerir agrupar los paises en 2 grupos. Los paises de Bulagria que solo consumen Ceral principalmente pueden agruparse con Albania por ejemplo. Paises como Austria que presentatn consumo de Ceral, Leche y Carnes Blancas pueden formar un grupo con , Belgium, Denmark, Germany , entre otros. 
 
 d. 
-```{r}
+```{r, echo=FALSE}
 X2 <- Protein[, c("Red_Meat", "White_Meat", "Eggs", "Milk", "Fish", "Cereal", "Starch", "Nuts", "Fruits_Vegetables")]
 X2[] <- lapply(X2, as.numeric)
 head(X2)
 ```
-```{r}
+```{r , echo=FALSE}
 library(car)
 # Gráfico QQ para cada variable
 par(mfrow = c(3, 3))  # Establecer una matriz de gráficos 3x3
@@ -287,44 +387,43 @@ for (col in names(X2)) {
 
 
 ```
-```{r}
 
-```
-
+A simple vista podemos ver sierta discrepancia entre los puntos y la linea recta de color azul. Sin embargo puede que exista normalidad en la mayoría de las variables.
 e. 
 
+
+Se plantea las siguientes hipótesis para evaluar la normalidad multivariada de los datos:
+
+- **H0**: Los datos provienen de una población Normal Multivariada.
+- **H1**: Los datos NO provienen de una población Normal Multivariada.
+
 ```{r}
- library(MVN)
+library(MVN)
 mardia_result <- mvn(X2, mvnTest = "mardia")
 mardia_result
 ```
-```{r}
- 
-```
-```{r}
- 
-```
+
+Dado que no se rechaza la hipótesis nula (H0), se concluye que los datos provienen de una población Normal Multivariada. Esto sugiere que las suposiciones de normalidad son válidas para los análisis posteriores.
+
 
 f. 
 
-```{r}
+```{r, echo=FALSE}
  outliers_result <- mvn(X2, mvnTest = "mardia", multivariateOutlierMethod = "adj")
 outliers_result
 
 ```
 
+8 valores atípicos son encontrados con la prueba gráfico siendo el más alejado de todos 'España'.
 
 g. 
 
 
 ```{r}
  mu0 <- c(9, 7, 2, 15, 5, 30, 4, 3, 4)
-```
-```{r}
 Xbarra <- colMeans(X2)
 S <- apply(X2, 2, sd)
 
-# Número de observaciones y número de variables
 n <- nrow(X2)
 n
 p <- ncol(X2)
@@ -339,10 +438,10 @@ p
 })
 p_values
 ```
+Se observa que solo la variable **Eggs** tiene un p-valor menor a 0.05, lo que indica que se rechaza la hipótesis nula para esta variable, sugiriendo que su media es significativamente diferente de la población de referencia. Las demás variables no presentan diferencias significativas.
 
-```{r}
- 
-```
+
+
 - Multivariada:
 
 ```{r}
@@ -366,12 +465,5 @@ F_value
 p_value_multivariado <- 1 - pf(F_value, df1 = p, df2 = n - p)
 p_value_multivariado
 ```
-```{r}
- 
-```
-```{r}
- 
-```
-```{r}
- 
-```
+
+El valor de T² calculado es **64.84185** y el valor F correspondiente es **4.8031**, lo que da como resultado un p-valor de **0.0032**. Este p-valor es menor que 0.05, lo que indica que se rechaza la hipótesis nula de que los datos provienen de una población Normal Multivariada.
