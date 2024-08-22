@@ -1,0 +1,3 @@
+- Mientras que datos realos no son 'exactamente' distribuidos normal multivariados, la densidad normal es usualmente una aproximación útil a la verdadera distribucion poblacional.
+-Es matematicamente tracable y resultados bonitos se pueden extraer de ellos.
+-Las distribuciones muestrale de muchas estadisticas multivariadas son aproximadamente normal, sin importar la forma de la poblacion padre, debido al teorema del limite central
