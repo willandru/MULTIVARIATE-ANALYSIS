@@ -1,0 +1,208 @@
+---
+title: "Tarea 2 - Análisis Multivariado"
+author: "William Andrés Gómez Roa"
+date: "2024-10-01"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(HSAUR3)
+
+```
+
+### 1. Datos de USairpollution
+
+Los datos USairpollution del paquete HSAUR3 se refieren a la contaminación
+del aire en 41 ciudades de Estados Unidos. Se registraron las siguientes variables:
+
+- **SO2**: Contenido de dióxido de azufre en el aire en microgramos por metro cúbico.
+- **temp**: Temperatura media anual (en Fahrenheit).
+- **manu**: Número de empresas manufactureras que emplean a 20 o más trabajadores.
+- **popul**: Tamaño de la población (censo de 1970) en miles.
+- **wind**: Velocidad media anual del viento en millas por hora.
+- **precip**: Precipitación anual promedio en pulgadas.
+- **predays**: Promedio de días con precipitación al año.
+
+
+Los datos se recopilaron originalmente para investigar los determinantes de la
+contaminacíon, presumiblemente mediante una regresión del SO2 en las otras seis
+variables.
+
+### **a.** De acuerdo con los datos ¿usted trabajaría con la matriz de covarianzas o con la matriz de correlación? Justifique.
+```{r }
+datos <- USairpollution[, -1]
+
+```
+```{r }
+S <- cov(datos)
+R <- cor(datos)
+
+S
+R
+```
+
+
+Ya que los datos tienen varianzas considerablemente diferentes y no están en la misma escala de comparación, es necesario hacer uso de la matriz de correlaciones (**R**) para eliminar el efecto causado por las diferentes escalas de medición entre las variables. Además, al utilizar la matriz de correlación, se facilita la comparación de la fuerza y dirección de la relación entre las variables, lo cual es especialmente importante en análisis como el Análisis de Componentes Principales (ACP), donde las variables con varianzas más grandes podrían influir desproporcionadamente en los resultados. 
+
+
+
+
+### **b.** Verifique si el ACP para las últimas 6 variables es viable, en caso de serlo, ecriba las 6 componentes principales y sugiera un nombre para cada una.¿Con cuántas componentes trabajaría? Justifique.
+
+
+Antes de realizar el ACP, es importante comprobar si los datos son adecuados para este análisis. Para esto podemos utilizar el test de esfericidad de Bartlett o la prueba de KMO (Kaiser-Meyer-Olkin) para evaluar la adecuación de la muestra.
+
+```{r }
+library(psych)
+```
+
+**Esfericidad de Bartlett**
+
+
+- **Hipótesis Nula (H0)**: La matriz de correlación es igual a la matriz de identidad (es decir, las variables son esféricamente distribuidas, lo que indica que no hay correlación entre ellas).
+  
+- **Hipótesis Alternativa (H1)**: La matriz de correlación no es igual a la matriz de identidad (es decir, hay correlación entre las variables).
+
+```{r }
+cortest.bartlett(R, n= 41)
+```
+
+El resultado de la prueba de esfericidad de Bartlett es un p-valor < 0.05. Esto significa que podemos rechazar la hipótesis nula de que las variables son esféricas (es decir, que las correlaciones son iguales a cero). Esto sugiere que hay correlaciones significativas entre las variables y que es apropiado realizar un análisis factorial u otro análisis multivariado.
+
+**ACP : USairpollution**
+
+
+```{r }
+acp <- princomp(datos, cor = TRUE) 
+
+autovecotres <- acp$loadings
+vectore_medias <- acp$center
+autovecotres
+
+```
+
+Las cargas (loadings) indican cómo cada variable original contribuye a los componentes principales en el análisis:
+
+- Componente 1: precip (-0.612) y popul (-0.578) tienen cargas negativas significativas, mientras que temp (0.330) y wind (-0.354) muestran contribuciones más bajas. Esto sugiere que las variables de precipitación y población están inversamente relacionadas con este componente.
+
+- Componente 2: temp (0.672) y manu (0.306) tienen cargas positivas, lo que implica que un aumento en estas variables está asociado con un aumento en este componente, mientras que predays (-0.708) tiene una carga negativa, indicando una relación inversa.
+
+- Componente 3: Las variables manu (0.558) y wind (0.505) contribuyen positivamente, mientras que temp (0.306) tiene una carga menor, lo que sugiere que este componente está relacionado con la manufactura y la velocidad del viento.
+
+- Componente 4: La variable precip (0.869) tiene una carga muy alta, indicando que está fuertemente relacionada con este componente. Las otras variables tienen cargas cercanas a cero, lo que sugiere que este componente es principalmente influenciado por la precipitación.
+
+- Componente 5: Aquí, la variable popul (0.350) tiene una carga positiva, pero es relativamente baja en comparación con las contribuciones de otros componentes. Las demás variables tienen cargas muy bajas.
+
+- Componente 6: Este componente tiene cargas cercanas a cero para la mayoría de las variables, indicando que tiene poca relación con las variables originales, pero predays (-0.238) tiene una carga negativa.
+En términos de proporción de varianza, cada componente explica el 16.7% de la varianza total, sumando hasta el 100% acumulado con el último componente.
+
+```{r }
+summary(acp)
+```
+
+Del anterior resumen podemos ver que los primeros tres componentes son los más informativos, mientras que los últimos componentes contribuyen poco a la explicación de la varianza en los datos.
+
+- Desviación estándar: Cada componente tiene una desviación estándar que indica la cantidad de variabilidad que explica. Comp.1 tiene la mayor desviación estándar (1.4819), lo que sugiere que es el componente más importante. A medida que avanzamos a través de los componentes, la desviación estándar disminuye, con Comp.6 teniendo una desviación estándar muy baja (0.1856), indicando que aporta poco a la variabilidad total.
+
+- Proporción de varianza: Comp.1 explica aproximadamente el 36.6% de la varianza total en los datos, seguido de Comp.2 (24.9%) y Comp.3 (23.2%). Estos tres primeros componentes en conjunto explican más del 84.7% de la varianza total, lo que sugiere que capturan la mayoría de la información presente en los datos. En contraste, Comp.6 solo explica el 0.57% de la varianza, lo que indica que su impacto es mínimo.
+
+- Proporción acumulativa: La proporción acumulativa muestra cómo se acumula la varianza explicada a medida que se consideran más componentes. Después de Comp.1, el 61.6% de la varianza está explicada, y después de Comp.3, se alcanza el 84.8%. Con los primeros cuatro componentes, se explica el 97.5%, lo que resalta que se puede reducir significativamente la dimensionalidad sin perder mucha información.
+
+
+
+### 2. Datos de Hijos
+
+Los datos del archivo **Hijos.txt** corresponden a las medidas de la cabeza (en milímetros) de cada uno de los dos primeros hijos adultos en 25 familias. Estos datos fueron recopilados por **Frets (1921)**, y la pregunta de interés era si existe una relación entre las medidas de la cabeza de los pares de hijos.
+
+```{r,include=FALSE }
+Hijos <- read.table("Hijos.txt")
+
+
+# Extraer las columnas
+head1_1 <- as.numeric(Hijos$V1[2:14])
+breadth1_1 <- as.numeric(Hijos$V2[2:14])
+head2_1 <- as.numeric(Hijos$V3[2:14])
+breadth2_1 <- as.numeric(Hijos$V4[2:14])
+
+head1_2 <- as.numeric(Hijos$V5[2:14])
+breadth1_2 <- as.numeric(Hijos$V6[2:14])
+head2_2 <- as.numeric(Hijos$V7[2:14])
+breadth2_2 <- as.numeric(Hijos$V8[2:14])
+
+# Combinar los vectores en un solo data.frame
+Hijos_completo <- data.frame(
+  head1 = c(head1_1, head1_2),
+  breadth1 = c(breadth1_1, breadth1_2),
+  head2 = c(head2_1, head2_2),
+  breadth2 = c(breadth2_1, breadth2_2)
+)
+
+
+datos_hijos <-Hijos_completo[-nrow(Hijos_completo), ]
+
+cabezas_hijos <- datos_hijos[, c("head1", "head2")]
+ancho_cabezas <- datos_hijos[, c("breadth1", "breadth2")]
+```
+
+
+
+### **a.** Verifique si el ACP para la longitud de la cabeza (head1 y head2) es viable. En caso de ser viable, escriba las 2 componentes principales y sugiera un nombre para cada una. ¿Con cuántas componentes trabajaría? Justifique.
+
+
+```{r }
+str(cabezas_hijos)
+```
+
+**Prueba de Esfericidad de Bartlett para la longitud las cabezas**
+
+```{r }
+R<-cor(cabezas_hijos)
+cortest.bartlett(R, n= 25)
+```
+
+En este análisis, la prueba de esfericidad de Bartlett, con un valor p de $6.93×10−5$ indica que los datos son adecuados para el análisis multivariado, lo que sugiere que las variables están correlacionadas de manera significativa.
+
+**ACP : Longitud de las cabezas**
+
+Se supone que las cabezas del hijo uno fueron medidas de la misma forma que las cabezas de los hijos 2, por lo que usaremos la matriz S para hacer el ACP.
+```{r }
+acp <- princomp(cabezas_hijos, cor = FALSE) 
+summary(acp)
+```
+
+
+Dado que la primera componente (Comp.1) explica el 85.6% de la varianza, y la segunda (Comp.2) agrega un 14.4% adicional, se podría considerar trabajar únicamente con una componente (Comp.1) para simplificar el análisis, ya que captura la mayor parte de la información. Sin embargo, si se desea una comprensión más completa de los datos, podría considerarse mantener las dos componentes para investigar la variabilidad adicional que Comp.2 aporta.
+
+
+### **b.** Repita (a) para el ancho de la cabeza (breadth1 y breadth2)
+
+
+```{r }
+str(ancho_cabezas)
+```
+
+**Prueba de Esfericidad de Bartlett para el ancho de las cabezas**
+
+```{r }
+R<-cor(ancho_cabezas)
+cortest.bartlett(R, n= 25)
+```
+
+En este análisis, observando el valor p obtenido, la prueba de esfericidad de Bartlett indica que los datos son adecuados para el análisis multivariado, lo que sugiere que las variables están correlacionadas de manera significativa.
+
+**ACP : Ancho de las cabezas**
+
+Se supone que las cabezas del hijo uno fueron medidas de la misma forma que las cabezas de los hijos 2, por lo que usaremos la matriz S para hacer el ACP.
+```{r }
+acp <- princomp(ancho_cabezas, cor = FALSE) 
+summary(acp)
+```
+
+El Análisis de Componentes Principales (ACP) para el ancho de las cabezas se realiza utilizando la matriz de covarianza, asumiendo que las medidas han sido obtenidas de manera uniforme. Se identifican dos componentes principales: la Comp.1, que tiene una desviación estándar de 9.036 y explica el 85.6% de la varianza total, y se denomina "Variabilidad General del Ancho de la Cabeza", mientras que la Comp.2, con una desviación estándar de 3.709 y que explica el 14.4% de la varianza, se puede llamar "Diferencia Relativa entre Anchos de Hijos". Aunque es posible simplificar el análisis utilizando solo la Comp.1, considerar ambas componentes podría proporcionar una visión más completa de la variación en los datos, lo que dependerá del enfoque del análisis.
+
+
+Los nombres asignados a las componentes principales reflejan su significado: "Variabilidad General del Ancho de la Cabeza" (Comp.1) se refiere a la primera componente, que captura el 85.6% de la varianza total, indicando que representa las características generales que afectan el ancho de las cabezas. En contraste, "Diferencia Relativa entre Anchos de Hijos" (Comp.2) destaca la variación adicional que explica el 14.4% restante de la varianza, señalando diferencias específicas entre los anchos de las cabezas de los hijos que no se reflejan en la variabilidad general.
+
